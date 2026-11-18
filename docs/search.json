@@ -1,0 +1,72 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Election Results Atlas",
+    "section": "",
+    "text": "The atlas compares election results at the geographic level available for each state. It starts with North Carolina, where the State Board of Elections publishes precinct-level November results."
+  },
+  {
+    "objectID": "index.html#available-states",
+    "href": "index.html#available-states",
+    "title": "Election Results Atlas",
+    "section": "Available states",
+    "text": "Available states\n\nNorth Carolina: November 2026 county and precinct results\n\nThe North Carolina page begins with a county map and includes the same precinct-level source data used by the statewide analysis."
+  },
+  {
+    "objectID": "north-carolina.html",
+    "href": "north-carolina.html",
+    "title": "North Carolina",
+    "section": "",
+    "text": "The map shows the Democratic margin in percentage points by county: D+ means Roy Cooper led Michael Whatley in that county.\n\npal &lt;- colorBin(\n  palette = c(\"#b2182b\", \"#ef8a62\", \"#f7f7f7\", \"#67a9cf\", \"#2166ac\"),\n  bins = c(-100, -20, -5, 5, 20, 100),\n  domain = county_map$margin_2026,\n  na.color = \"#bdbdbd\"\n)\n\nleaflet(county_map, options = leafletOptions(zoomSnap = 0.25)) |&gt;\n  addProviderTiles(providers$CartoDB.Positron) |&gt;\n  addPolygons(\n    fillColor = ~pal(margin_2026),\n    fillOpacity = 0.82,\n    color = \"white\",\n    weight = 0.7,\n    label = ~paste0(\n      county_name, \": \",\n      if_else(margin_2026 &gt; 0, \"D+\", \"R+\"),\n      abs(round(margin_2026, 1))\n    ),\n    highlightOptions = highlightOptions(\n      weight = 2,\n      color = \"#333333\",\n      fillOpacity = 0.95,\n      bringToFront = TRUE\n    )\n  ) |&gt;\n  addLegend(\n    position = \"bottomright\",\n    pal = pal,\n    values = ~margin_2026,\n    title = \"Democratic margin\",\n    labFormat = labelFormat(suffix = \"%\")\n  )"
+  },
+  {
+    "objectID": "north-carolina.html#u.s.-senate",
+    "href": "north-carolina.html#u.s.-senate",
+    "title": "North Carolina",
+    "section": "",
+    "text": "The map shows the Democratic margin in percentage points by county: D+ means Roy Cooper led Michael Whatley in that county.\n\npal &lt;- colorBin(\n  palette = c(\"#b2182b\", \"#ef8a62\", \"#f7f7f7\", \"#67a9cf\", \"#2166ac\"),\n  bins = c(-100, -20, -5, 5, 20, 100),\n  domain = county_map$margin_2026,\n  na.color = \"#bdbdbd\"\n)\n\nleaflet(county_map, options = leafletOptions(zoomSnap = 0.25)) |&gt;\n  addProviderTiles(providers$CartoDB.Positron) |&gt;\n  addPolygons(\n    fillColor = ~pal(margin_2026),\n    fillOpacity = 0.82,\n    color = \"white\",\n    weight = 0.7,\n    label = ~paste0(\n      county_name, \": \",\n      if_else(margin_2026 &gt; 0, \"D+\", \"R+\"),\n      abs(round(margin_2026, 1))\n    ),\n    highlightOptions = highlightOptions(\n      weight = 2,\n      color = \"#333333\",\n      fillOpacity = 0.95,\n      bringToFront = TRUE\n    )\n  ) |&gt;\n  addLegend(\n    position = \"bottomright\",\n    pal = pal,\n    values = ~margin_2026,\n    title = \"Democratic margin\",\n    labFormat = labelFormat(suffix = \"%\")\n  )"
+  },
+  {
+    "objectID": "north-carolina.html#county-shift-from-2024",
+    "href": "north-carolina.html#county-shift-from-2024",
+    "title": "North Carolina",
+    "section": "County shift from 2024",
+    "text": "County shift from 2024\nThe chart compares each county’s 2026 Senate margin with its 2024 presidential margin. Positive values mean a more Democratic result in 2026 relative to 2024.\n\nplot &lt;- ggplot(county_comparison,\n               aes(x = margin_2024, y = margin_2026,\n                   text = county_name,\n                   color = swing)) +\n  geom_abline(intercept = 0, slope = 1, linetype = \"dashed\",\n              color = \"gray50\") +\n  geom_hline(yintercept = 0, linewidth = 0.3, color = \"gray70\") +\n  geom_vline(xintercept = 0, linewidth = 0.3, color = \"gray70\") +\n  geom_point(size = 2.5, alpha = 0.85) +\n  scale_color_gradient2(\n    low = \"#b2182b\", mid = \"#f7f7f7\", high = \"#2166ac\",\n    midpoint = 0\n  ) +\n  labs(\n    title = \"2026 Senate margin vs. 2024 presidential margin\",\n    x = \"2024 Harris margin (percentage points)\",\n    y = \"2026 Cooper margin (percentage points)\",\n    color = \"Swing toward Democrats\"\n  ) +\n  theme_minimal(base_size = 13)\n\nggplotly(plot, tooltip = \"text\")"
+  },
+  {
+    "objectID": "north-carolina.html#data-coverage",
+    "href": "north-carolina.html#data-coverage",
+    "title": "North Carolina",
+    "section": "Data coverage",
+    "text": "Data coverage\n\n2026 source: NCSBE precinct results, November 3, 2026\n2024 source: NCSBE precinct results, November 5, 2024\n2026 geographic scale: precinct results aggregated to counties\nFuture geographic scale: Census or NCSBE precinct boundaries\nCandidates shown: Roy Cooper vs. Michael Whatley, and Kamala Harris vs. Donald Trump\n\nThe underlying 2026 and 2024 files are stored in data/north-carolina/2026-11-03/ and data/north-carolina/2024-11-05/."
+  },
+  {
+    "objectID": "analysis.html",
+    "href": "analysis.html",
+    "title": "Who Moved to Sarasota County?",
+    "section": "",
+    "text": "These estimates describe people who lived outside Sarasota County one year ago and reported Sarasota County as their current residence.\n\nggplot(movers_by_origin, aes(x = fct_reorder(movement, people), y = people)) +\n  geom_col(fill = \"#2c7fb8\") +\n  geom_text(aes(label = scales::comma(people)), hjust = -0.1, size = 4) +\n  coord_flip() +\n  scale_y_continuous(labels = scales::comma,\n                     expand = expansion(mult = c(0, 0.15))) +\n  labs(\n    title = \"People moving to Sarasota County, 2024\",\n    subtitle = \"Residence one year ago, ACS 1-year estimates\",\n    x = NULL,\n    y = \"Estimated number of people\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "analysis.html#how-many-people-moved-where",
+    "href": "analysis.html#how-many-people-moved-where",
+    "title": "Who Moved to Sarasota County?",
+    "section": "",
+    "text": "These estimates describe people who lived outside Sarasota County one year ago and reported Sarasota County as their current residence.\n\nggplot(movers_by_origin, aes(x = fct_reorder(movement, people), y = people)) +\n  geom_col(fill = \"#2c7fb8\") +\n  geom_text(aes(label = scales::comma(people)), hjust = -0.1, size = 4) +\n  coord_flip() +\n  scale_y_continuous(labels = scales::comma,\n                     expand = expansion(mult = c(0, 0.15))) +\n  labs(\n    title = \"People moving to Sarasota County, 2024\",\n    subtitle = \"Residence one year ago, ACS 1-year estimates\",\n    x = NULL,\n    y = \"Estimated number of people\"\n  ) +\n  theme_minimal(base_size = 13)"
+  },
+  {
+    "objectID": "analysis.html#age-of-people-moving",
+    "href": "analysis.html#age-of-people-moving",
+    "title": "Who Moved to Sarasota County?",
+    "section": "Age of people moving",
+    "text": "Age of people moving\n\nggplot(age_data, aes(x = factor(age, levels = age_groups),\n                     y = people,\n                     fill = movement)) +\n  geom_col(position = \"stack\") +\n  scale_fill_brewer(palette = \"Set2\") +\n  scale_y_continuous(labels = scales::comma) +\n  labs(\n    title = \"Age groups of people who moved to Sarasota County\",\n    subtitle = \"2024 ACS 1-year estimates\",\n    x = \"Age\",\n    y = \"Estimated number of people\",\n    fill = \"Where they moved from\"\n  ) +\n  theme_minimal(base_size = 12) +\n  theme(axis.text.x = element_text(angle = 45, hjust = 1),\n        legend.position = \"bottom\")"
+  },
+  {
+    "objectID": "analysis.html#sex-of-people-moving",
+    "href": "analysis.html#sex-of-people-moving",
+    "title": "Who Moved to Sarasota County?",
+    "section": "Sex of people moving",
+    "text": "Sex of people moving\n\nggplot(sex_data, aes(x = movement, y = people, fill = sex)) +\n  geom_col(position = \"dodge\") +\n  scale_fill_brewer(palette = \"Set1\") +\n  scale_y_continuous(labels = scales::comma) +\n  labs(\n    title = \"Sex of people moving to Sarasota County\",\n    subtitle = \"2024 ACS 1-year estimates\",\n    x = NULL,\n    y = \"Estimated number of people\",\n    fill = NULL\n  ) +\n  theme_minimal(base_size = 12) +\n  theme(axis.text.x = element_text(angle = 30, hjust = 1),\n        legend.position = \"bottom\")\n\n\n\n\n\n\n\n\nSource: U.S. Census Bureau, 2024 ACS 1-year estimates, accessed through Census Reporter. Estimates have margins of error and should not be interpreted as exact counts."
+  }
+]

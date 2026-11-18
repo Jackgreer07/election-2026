@@ -1,0 +1,162 @@
+---
+title: "North Carolina"
+subtitle: "November 2026 results"
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(plotly)
+library(tigris)
+
+read_nc_results <- \(path) {
+  read_tsv(path, show_col_types = FALSE)
+}
+
+county_margins <- \(results, contest, candidates) {
+  results |>
+    filter(`Contest Name` == contest,
+           Choice %in% names(candidates)) |>
+    mutate(party = recode(Choice, !!!candidates)) |>
+    group_by(County, party) |>
+    summarize(votes = sum(`Total Votes`), .groups = "drop") |>
+    pivot_wider(names_from = party, values_from = votes, values_fill = 0) |>
+    mutate(margin = 100 * (DEM - REP) / (DEM + REP),
+           county_name = str_to_title(County))
+}
+
+results_2026 <- read_nc_results(
+  "data/north-carolina/2026-11-03/results_pct_20261103.txt"
+)
+results_2024 <- read_nc_results(
+  "data/north-carolina/2024-11-05/results_pct_20241105.txt"
+)
+
+senate_2026 <- county_margins(
+  results_2026,
+  "US SENATE",
+  c("Roy Cooper" = "DEM", "Michael Whatley" = "REP")
+) |>
+  select(county_name, margin_2026 = margin,
+         dem_2026 = DEM, rep_2026 = REP)
+
+president_2024 <- county_margins(
+  results_2024,
+  "US PRESIDENT",
+  c("Kamala D. Harris" = "DEM", "Donald J. Trump" = "REP")
+) |>
+  select(county_name, margin_2024 = margin,
+         dem_2024 = DEM, rep_2024 = REP)
+
+county_comparison <- senate_2026 |>
+  inner_join(president_2024, by = "county_name") |>
+  mutate(swing = margin_2026 - margin_2024)
+
+counties <- counties(state = "NC", year = 2024, cb = TRUE) |>
+  mutate(county_name = str_to_title(NAME)) |>
+  st_transform(4326)
+
+county_map <- counties |>
+  left_join(county_comparison, by = "county_name")
+
+county_totals_2026 <- senate_2026 |>
+  summarize(dem = sum(dem_2026), rep = sum(rep_2026)) |>
+  mutate(margin = 100 * (dem - rep) / (dem + rep),
+         margin_text = paste0(if_else(margin > 0, "D+", "R+"),
+                              abs(round(margin, 1))))
+```
+
+## 2026 U.S. Senate
+
+The map shows the Democratic margin in percentage points by county:
+**D+** means Roy Cooper led Michael Whatley in that county.
+
+```{r}
+#| label: senate-map
+#| fig-width: 9
+
+pal <- colorBin(
+  palette = c("#b2182b", "#ef8a62", "#f7f7f7", "#67a9cf", "#2166ac"),
+  bins = c(-100, -20, -5, 5, 20, 100),
+  domain = county_map$margin_2026,
+  na.color = "#bdbdbd"
+)
+
+leaflet(county_map, options = leafletOptions(zoomSnap = 0.25)) |>
+  addProviderTiles(providers$CartoDB.Positron) |>
+  addPolygons(
+    fillColor = ~pal(margin_2026),
+    fillOpacity = 0.82,
+    color = "white",
+    weight = 0.7,
+    label = ~paste0(
+      county_name, ": ",
+      if_else(margin_2026 > 0, "D+", "R+"),
+      abs(round(margin_2026, 1))
+    ),
+    highlightOptions = highlightOptions(
+      weight = 2,
+      color = "#333333",
+      fillOpacity = 0.95,
+      bringToFront = TRUE
+    )
+  ) |>
+  addLegend(
+    position = "bottomright",
+    pal = pal,
+    values = ~margin_2026,
+    title = "Democratic margin",
+    labFormat = labelFormat(suffix = "%")
+  )
+```
+
+## County shift from 2024
+
+The chart compares each county's 2026 Senate margin with its 2024 presidential
+margin. Positive values mean a more Democratic result in 2026 relative to 2024.
+
+```{r}
+#| label: swing-chart
+#| fig-width: 9
+#| fig-height: 7
+
+plot <- ggplot(county_comparison,
+               aes(x = margin_2024, y = margin_2026,
+                   text = county_name,
+                   color = swing)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed",
+              color = "gray50") +
+  geom_hline(yintercept = 0, linewidth = 0.3, color = "gray70") +
+  geom_vline(xintercept = 0, linewidth = 0.3, color = "gray70") +
+  geom_point(size = 2.5, alpha = 0.85) +
+  scale_color_gradient2(
+    low = "#b2182b", mid = "#f7f7f7", high = "#2166ac",
+    midpoint = 0
+  ) +
+  labs(
+    title = "2026 Senate margin vs. 2024 presidential margin",
+    x = "2024 Harris margin (percentage points)",
+    y = "2026 Cooper margin (percentage points)",
+    color = "Swing toward Democrats"
+  ) +
+  theme_minimal(base_size = 13)
+
+ggplotly(plot, tooltip = "text")
+```
+
+## Data coverage
+
+- **2026 source:** NCSBE precinct results, November 3, 2026
+- **2024 source:** NCSBE precinct results, November 5, 2024
+- **2026 geographic scale:** precinct results aggregated to counties
+- **Future geographic scale:** Census or NCSBE precinct boundaries
+- **Candidates shown:** Roy Cooper vs. Michael Whatley, and
+  Kamala Harris vs. Donald Trump
+
+The underlying 2026 and 2024 files are stored in
+`data/north-carolina/2026-11-03/` and
+`data/north-carolina/2024-11-05/`.

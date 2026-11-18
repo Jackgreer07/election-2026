@@ -1,0 +1,18 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Election Results Atlas"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: north-carolina.qmd
+        text: North Carolina
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true

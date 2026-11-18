@@ -1,0 +1,14 @@
+---
+title: "Election Results Atlas"
+---
+
+The atlas compares election results at the geographic level available for
+each state. It starts with North Carolina, where the State Board of Elections
+publishes precinct-level November results.
+
+## Available states
+
+- [North Carolina](north-carolina.qmd): November 2026 county and precinct results
+
+The North Carolina page begins with a county map and includes the same
+precinct-level source data used by the statewide analysis.
