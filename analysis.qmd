@@ -1,0 +1,163 @@
+---
+title: "Who Moved to Sarasota County?"
+format:
+  html:
+    toc: true
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(jsonlite)
+
+reporter_url <- "https://api.censusreporter.org/1.0/data/show/acs2024_1yr"
+
+get_table <- \(table_id) {
+  url <- paste0(reporter_url,
+                "?table_ids=", table_id,
+                "&geo_ids=05000US12115")
+
+  data <- fromJSON(url, simplifyVector = TRUE)
+
+  list(
+    estimates = data$data[[1]][[table_id]]$estimate,
+    errors = data$data[[1]][[table_id]]$error,
+    columns = data$tables[[table_id]]$columns
+  )
+}
+```
+
+```{r}
+#| label: prepare-data
+#| include: false
+
+age_table <- get_table("B07001")
+
+age_groups <- c(
+  "1 to 4 years", "5 to 17 years", "18 and 19 years",
+  "20 to 24 years", "25 to 29 years", "30 to 34 years",
+  "35 to 39 years", "40 to 44 years", "45 to 49 years",
+  "50 to 54 years", "55 to 59 years", "60 to 64 years",
+  "65 to 69 years", "70 to 74 years", "75 years and over"
+)
+
+movement_bases <- c(
+  "Moved within same county",
+  "Moved from different county within same state",
+  "Moved from different state",
+  "Moved from abroad"
+)
+
+starts <- c(34, 50, 66, 82)
+
+age_data <- tibble(
+  movement = rep(movement_bases, each = length(age_groups)),
+  age = rep(age_groups, times = length(movement_bases)),
+  column = paste0(
+    "B070010",
+    sprintf("%02d", unlist(map(starts, \(start) start:(start + 14))))
+  )
+) |>
+  mutate(
+    people = map_dbl(column, \(column) age_table$estimates[[column]])
+  ) |>
+  filter(people > 0)
+
+movers_by_origin <- age_data |>
+  group_by(movement) |>
+  summarize(people = sum(people), .groups = "drop")
+
+sex_table <- get_table("B07003")
+
+sex_data <- tibble(
+  movement = rep(movement_bases, each = 2),
+  sex = rep(c("Male", "Female"), times = length(movement_bases)),
+  column = c(
+    "B07003008", "B07003009",
+    "B07003011", "B07003012",
+    "B07003014", "B07003015",
+    "B07003017", "B07003018"
+  )
+) |>
+  mutate(people = map_dbl(column, \(column) sex_table$estimates[[column]]))
+
+```
+
+## How many people moved where?
+
+These estimates describe people who lived outside Sarasota County one year ago
+and reported Sarasota County as their current residence.
+
+```{r}
+#| label: movers-by-origin
+#| fig-width: 9
+#| fig-height: 5
+
+ggplot(movers_by_origin, aes(x = fct_reorder(movement, people), y = people)) +
+  geom_col(fill = "#2c7fb8") +
+  geom_text(aes(label = scales::comma(people)), hjust = -0.1, size = 4) +
+  coord_flip() +
+  scale_y_continuous(labels = scales::comma,
+                     expand = expansion(mult = c(0, 0.15))) +
+  labs(
+    title = "People moving to Sarasota County, 2024",
+    subtitle = "Residence one year ago, ACS 1-year estimates",
+    x = NULL,
+    y = "Estimated number of people"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+## Age of people moving
+
+```{r}
+#| label: age-movers
+#| fig-width: 10
+#| fig-height: 6
+
+ggplot(age_data, aes(x = factor(age, levels = age_groups),
+                     y = people,
+                     fill = movement)) +
+  geom_col(position = "stack") +
+  scale_fill_brewer(palette = "Set2") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = "Age groups of people who moved to Sarasota County",
+    subtitle = "2024 ACS 1-year estimates",
+    x = "Age",
+    y = "Estimated number of people",
+    fill = "Where they moved from"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom")
+```
+
+## Sex of people moving
+
+```{r}
+#| label: sex-movers
+#| fig-width: 9
+#| fig-height: 5
+
+ggplot(sex_data, aes(x = movement, y = people, fill = sex)) +
+  geom_col(position = "dodge") +
+  scale_fill_brewer(palette = "Set1") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = "Sex of people moving to Sarasota County",
+    subtitle = "2024 ACS 1-year estimates",
+    x = NULL,
+    y = "Estimated number of people",
+    fill = NULL
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1),
+        legend.position = "bottom")
+```
+
+**Source:** U.S. Census Bureau, 2024 ACS 1-year estimates, accessed through
+Census Reporter. Estimates have margins of error and should not be interpreted
+as exact counts.
